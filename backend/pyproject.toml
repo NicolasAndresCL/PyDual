@@ -1,0 +1,18 @@
+# Configuración de pytest y coverage del backend. Ruff se configura en
+# ../pyproject.toml (este archivo no tiene sección [tool.ruff], así que ruff lo
+# ignora y sube al de comparativo_v2).
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "--strict-markers"
+filterwarnings = ["error::DeprecationWarning:app.*"]
+
+[tool.coverage.run]
+source = ["app"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+# Cuerpos `...` de los Protocol: no son código ejecutable.
+exclude_also = ["if TYPE_CHECKING:", '^\s*\.\.\.$']

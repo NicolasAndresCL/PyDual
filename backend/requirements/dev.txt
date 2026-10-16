@@ -1,0 +1,7 @@
+# Herramientas de desarrollo y CI del backend (incluye las de ejecución).
+-r base.txt
+# El TestClient de Starlette 1.x pide httpx2 (con httpx emite DeprecationWarning).
+httpx2==2.13.1
+pytest==9.1.1
+pytest-cov==7.1.0
+ruff==0.17.1
