@@ -2,7 +2,7 @@
 # Multi-stage: el builder crea el venv; el runtime solo lo copia.
 
 # ---------------------------------------------------------------- builder
-FROM python:3.13-slim AS builder
+FROM python:3.14-slim AS builder
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -14,7 +14,7 @@ RUN python -m venv /opt/venv \
     && /opt/venv/bin/pip install --no-cache-dir -r requirements/base.txt
 
 # ---------------------------------------------------------------- runtime
-FROM python:3.13-slim AS runtime
+FROM python:3.14-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH"
