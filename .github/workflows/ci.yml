@@ -1,0 +1,131 @@
+# CI de PyDual (comparativo v2: NiceGUI + FastAPI + Postgres, en Docker).
+# Cascada rápido → lento: lint → tests (SQLite y Postgres) → build + arranque.
+# `scripts/verificar.sh` reproduce estos mismos jobs en local.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.13"
+  HADOLINT_IMAGE: hadolint/hadolint:v2.15.1
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Instalar ruff (misma versión que requirements/dev.txt)
+        run: pip install "$(grep '^ruff==' backend/requirements/dev.txt)"
+      - name: ruff check
+        run: ruff check .
+      - name: ruff format --check
+        run: ruff format --check .
+      - name: hadolint (backend y frontend)
+        run: |
+          for dockerfile in backend/Dockerfile frontend/Dockerfile; do
+            echo "== $dockerfile"
+            docker run --rm -i "$HADOLINT_IMAGE" < "$dockerfile"
+          done
+
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        servicio: [backend, frontend]
+    defaults:
+      run:
+        working-directory: ${{ matrix.servicio }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: ${{ matrix.servicio }}/requirements/*.txt
+      - run: pip install -r requirements/dev.txt
+      # El test de paridad con la v1 (tkinter) se OMITE aquí: la v1 no está en
+      # este repo. `-rs` deja el motivo del skip a la vista en el log.
+      - name: pytest con cobertura (SQLite en memoria)
+        run: pytest -q -rs --cov --cov-report=term-missing --cov-fail-under=83
+      - name: core/ al 100 %
+        if: matrix.servicio == 'backend'
+        run: coverage report --include='app/core/*' --fail-under=100
+
+  test-postgres:
+    needs: lint
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+          POSTGRES_DB: app_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app -d app_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg://app:app@localhost:5432/app_test
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements/*.txt
+      - run: pip install -r requirements/dev.txt
+      - name: Migraciones
+        run: alembic upgrade head
+      - name: Los modelos y las migraciones coinciden
+        run: alembic check
+      # -rs: si algo apareciera saltado aquí, no estaría probando contra Postgres.
+      - name: pytest contra Postgres
+        run: pytest -q -rs --cov --cov-report=term-missing --cov-fail-under=83
+
+  build:
+    needs: [test, test-postgres]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: .env efímero con contraseña generada
+        run: |
+          cp .env.example .env
+          sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 24)/" .env
+      - name: Construir y arrancar (espera a que los 3 servicios estén healthy)
+        run: docker compose up -d --build --wait --wait-timeout 180
+      - name: Humo contra el stack real
+        run: |
+          curl -fsS http://127.0.0.1:8000/healthz
+          total=$(curl -fsS http://127.0.0.1:8000/api/v1/secciones | python3 -c 'import json,sys; print(json.load(sys.stdin)["total"])')
+          echo "secciones: $total"; test "$total" -eq 20
+          ok=$(curl -fsS -X POST http://127.0.0.1:8000/api/v1/secciones/1/ejecuciones | python3 -c 'import json,sys; print(json.load(sys.stdin)["ok"])')
+          echo "ejecución ok: $ok"; test "$ok" = "True"
+          curl -fsS -o /dev/null -w "UI: %{http_code}\n" http://127.0.0.1:8080/
+      - name: Logs si algo falló
+        if: failure()
+        run: docker compose logs --no-color
+      - name: Apagar y borrar volúmenes
+        if: always()
+        run: docker compose down -v
