@@ -1,6 +1,14 @@
 # PyDual — Python imperativo vs. declarativo
 
 [![CI](https://github.com/NicolasAndresCL/PyDual/actions/workflows/ci.yml/badge.svg)](https://github.com/NicolasAndresCL/PyDual/actions/workflows/ci.yml)
+![Versión](https://img.shields.io/badge/versi%C3%B3n-2.0.0-blue)
+![Python](https://img.shields.io/badge/python-3.13-3776AB)
+
+| | |
+|---|---|
+| **Versión** | 2.0.0 |
+| **Fecha** | 15 de octubre de 2026 |
+| **Autor** | [Nicolás Andrés Cano Leal](#autor) |
 
 Aplicación web para estudiar Python comparando, ejercicio a ejercicio, la
 versión **imperativa** (cómo se hace) y la **declarativa** (qué se quiere) del
@@ -257,3 +265,14 @@ Los tests del backend usan SQLite en memoria salvo que el entorno traiga un
 - **Atajos.** `Ctrl+F` es la búsqueda del navegador, así que el filtro se
   enfoca con `/`. `F1`, `F2` y `F5` se anulan en el navegador para que lleguen
   a la aplicación.
+
+## Autor
+
+**Nicolás Andrés Cano Leal**\
+Backend Engineer → SRE | Python · Django · Kubernetes · Terraform · CI/CD
+
+- LinkedIn: [linkedin.com/in/nicolasandrescl](https://www.linkedin.com/in/nicolasandrescl/)
+- Portafolio: [nicolasandrescl.github.io](https://nicolasandrescl.github.io/)
+- Correo: [nicolas.cano.leal@gmail.com](mailto:nicolas.cano.leal@gmail.com)
+
+PyDual v2.0.0 · 15 de octubre de 2026
