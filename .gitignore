@@ -1,0 +1,18 @@
+# --- Secretos y entorno local ---
+.env
+.env.*
+!.env.example
+.venv/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# --- NiceGUI (almacenamiento local de sesiones) ---
+.nicegui/

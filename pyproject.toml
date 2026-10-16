@@ -1,0 +1,34 @@
+# Configuración de ruff del repositorio. La comparten el editor, la línea de
+# comandos, `scripts/verificar.sh` y el CI, para que todos midan con la misma vara.
+# Versión objetivo: las imágenes corren Python 3.13.
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+# El notebook es material didáctico (formato y comentarios alineados a propósito),
+# no código de la aplicación: lo valida el parser, no el linter.
+extend-exclude = ["datos"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle
+    "F",    # pyflakes
+    "W",    # warnings
+    "I",    # orden de imports
+    "UP",   # sintaxis moderna
+    "B",    # bugbear
+    "SIM",  # simplificaciones
+    "C4",   # comprehensions
+    "RET",  # returns
+    "ARG",  # argumentos sin usar
+    "PTH",  # pathlib en vez de os.path
+    "S",    # seguridad (bandit)
+]
+
+[tool.ruff.lint.per-file-ignores]
+# En los tests, `assert` es la herramienta, no un riesgo (S101).
+"**/tests/**" = ["S101"]
+# Las migraciones de Alembic siguen la plantilla generada por la herramienta.
+"backend/migrations/**" = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
