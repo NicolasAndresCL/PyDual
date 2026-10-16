@@ -1,0 +1,18 @@
+# Configuración de pytest y coverage del frontend. Ruff se configura en
+# ../pyproject.toml (este archivo no tiene sección [tool.ruff]).
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+# Vacío: el fixture `user` de NiceGUI no ejecuta ningún main.py; cada test
+# registra su propia página con un cliente HTTP simulado.
+main_file = ""
+
+[tool.coverage.run]
+source = ["app"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true

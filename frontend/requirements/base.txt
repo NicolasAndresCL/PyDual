@@ -1,0 +1,4 @@
+# Dependencias de ejecución del frontend. Versiones exactas: se actualizan con Dependabot.
+nicegui==3.18.0
+httpx==0.28.1
+pydantic-settings==2.16.0
