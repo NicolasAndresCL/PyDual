@@ -1,3 +1,11 @@
+# --- Documentos personales de Nicolás: NUNCA se publican ---
+CLAUDE.md
+AGENTS.md
+memory.md
+aprendizaje.md
+pendientes.md
+pasos*.md
+
 # --- Secretos y entorno local ---
 .env
 .env.*
