@@ -1,0 +1,31 @@
+# Contexto de build mínimo: solo entra lo que copia el Dockerfile.
+# Secretos: nunca dentro de una capa de la imagen.
+.env
+.env.*
+
+# Entornos virtuales y cachés
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.nicegui/
+
+# Lo que no hace falta para ejecutar
+.git/
+.github/
+tests/
+requirements/dev.txt
+pyproject.toml
+Dockerfile
+.dockerignore
+*.md
+*.sqlite3
+*.db

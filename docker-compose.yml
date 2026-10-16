@@ -1,0 +1,87 @@
+# Comparativo v2: Postgres + API (FastAPI) + UI (NiceGUI).
+#
+# Para qué sirve levantarlo: es la única forma de ver la aplicación completa
+# tal como se despliega —migraciones de Alembic contra Postgres real, la API
+# ejecutando celdas como usuario no-root dentro de su contenedor y la UI
+# hablando con ella solo por la red de Compose—. Los tests unitarios corren
+# con SQLite y un cliente HTTP simulado; esto prueba que las piezas encajan.
+#
+#   cp .env.example .env        # y pon una contraseña en POSTGRES_PASSWORD
+#   docker compose up -d --build
+#   http://127.0.0.1:8080        (UI)   ·   http://127.0.0.1:8000/docs (API)
+#
+# El notebook NO se copia a la imagen: entra como bind mount de solo lectura de
+# ese único archivo, así sigue siendo la fuente de verdad editable desde el
+# host. Tras editarlo, «Sincronizar» en la UI (o POST /api/v1/sincronizacion).
+#
+# Los datos viven en el volumen nombrado `postgres_data`: sobreviven a
+# `docker compose down`, pero NO a `docker compose down -v`.
+
+name: comparativo
+
+x-endurecido: &endurecido
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  tmpfs: [/tmp]
+  restart: unless-stopped
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-comparativo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD en tu .env}
+      POSTGRES_DB: ${POSTGRES_DB:-comparativo}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # Publicado solo en loopback, para correr la API fuera de Docker (ver README).
+    ports:
+      - "127.0.0.1:${PUERTO_DB:-5433}:5432"
+    restart: unless-stopped
+
+  api:
+    <<: *endurecido
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-comparativo}:${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD en tu .env}@db:5432/${POSTGRES_DB:-comparativo}
+      NOTEBOOK_RUTA: /datos/python_declarativo.ipynb
+      TIEMPO_LIMITE_EJECUCION_S: ${TIEMPO_LIMITE_EJECUCION_S:-60}
+      NIVEL_LOG: ${NIVEL_LOG:-INFO}
+    volumes:
+      - type: bind
+        source: ./datos/python_declarativo.ipynb
+        target: /datos/python_declarativo.ipynb
+        read_only: true
+    # Tope de procesos: una celda que lance procesos sin control no tumba el host.
+    pids_limit: 256
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${PUERTO_API:-8000}:8000"
+
+  ui:
+    <<: *endurecido
+    build: ./frontend
+    environment:
+      API_URL: http://api:8000
+      TIEMPO_ESPERA_API_S: ${TIEMPO_ESPERA_API_S:-90}
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${PUERTO_UI:-8080}:8080"
+    # Con el sistema de archivos de solo lectura, NiceGUI necesita dónde
+    # escribir su almacenamiento (`.nicegui/` en el directorio de trabajo).
+    tmpfs:
+      - /tmp
+      - /home/app:uid=1000,gid=1000
+
+volumes:
+  postgres_data:
